@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 # simulate.py
 def generate_covariance_matrix(r: float) -> np.ndarray:
@@ -42,6 +43,17 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     
     return samples
 
+def plot_samples(samples):
+    """Plots the samples in phase space."""
+    plt.figure(figsize=(6, 6))
+    plt.scatter(samples[:, 0], samples[:, 1], alpha=0.5, s=10)
+    plt.title("Phase Space Samples")
+    plt.xlabel("X Quadrature")
+    plt.ylabel("P Quadrature")
+    plt.axis('equal')
+    plt.grid(True)
+    plt.show()
+
 def main():
     # Example usage
     r = 0.5  # Squeezing parameter
@@ -50,10 +62,11 @@ def main():
     
     n_samples = 1000
     noise_level = 0.1
-    measurement_type = 'homodyne'  # or 'heterodyne'
+    measurement_type = 'heterodyne'  # or 'homodyne'
     rng = np.random.default_rng(seed=42)
     
     samples = sample_measurements(V_A, n_samples, noise_level, measurement_type, rng)
+    plot_samples(samples)
     print(samples)
 
 if __name__ == "__main__":
