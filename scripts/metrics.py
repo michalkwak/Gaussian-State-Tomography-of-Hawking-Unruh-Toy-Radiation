@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import simulate
 
 
 def compute_particle_number(V: np.ndarray) -> float:

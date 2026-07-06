@@ -40,10 +40,12 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     # q quadrature is accessible in both homodyne and heterodyne detection, 
     # but the p quadrature is only accessible in heterodyne detection. 
     # Therefore, we can simulate the measurement process by modifying the samples based on the measurement type.
-    
+
     if measurement_type == 'homodyne':
-        # For homodyne, we can simulate measuring one quadrature (e.g., x)
-        samples[:, 1] = 0  # Set p quadrature to zero
+        # each shot, randomly choose to measure x or p (LO phase choice), mask the other
+        mask = rng.integers(0, 2, size=n_samples)  # 0 -> measure x, 1 -> measure p
+        samples[mask == 0, 1] = np.nan
+        samples[mask == 1, 0] = np.nan
     elif measurement_type == 'heterodyne':
         # For heterodyne, we can simulate measuring both quadratures with added noise
         samples += rng.normal(loc=0.0, scale=noise_level, size=(n_samples, 2))
