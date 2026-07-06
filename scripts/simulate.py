@@ -22,7 +22,7 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     applies measurement_type logic (see below), returns (n_samples, 2) array.
     """
     # Cholesky decomposition of V_A
-    L = np.linalg.cholesky(V_A)
+    L = np.linalg.cholesky(V_A) # lower triangular matrix such that V_A = L @ L.T
     
     # Sample from standard normal distribution
     z = rng.standard_normal(size=(n_samples, 2))
@@ -33,6 +33,13 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     # Add detector noise
     noise = rng.normal(loc=0.0, scale=noise_level, size=(n_samples, 2))
     samples += noise
+    
+    # p quadrature is not directly accessible in homodyne detection, 
+    # so we can simulate that by setting it to zero or adding noise depending on the measurement type.
+
+    # q quadrature is accessible in both homodyne and heterodyne detection, 
+    # but the p quadrature is only accessible in heterodyne detection. 
+    # Therefore, we can simulate the measurement process by modifying the samples based on the measurement type.
     
     if measurement_type == 'homodyne':
         # For homodyne, we can simulate measuring one quadrature (e.g., x)
