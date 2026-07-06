@@ -1,12 +1,5 @@
 import numpy as np
 
-ESTIMATORS = {}
-def register_estimator(name):
-    def deco(fn):
-        ESTIMATORS[name] = fn
-        return fn
-    return deco
-
 def estimate_covariance(samples: np.ndarray) -> np.ndarray:
     """Handles homodyne's NaN-masked entries via pairwise-complete covariance"""
     if not np.isnan(samples).any():
