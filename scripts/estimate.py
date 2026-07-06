@@ -7,7 +7,6 @@ def register_estimator(name):
         return fn
     return deco
 
-@register_estimator("sample_cov")
 def estimate_covariance(samples: np.ndarray) -> np.ndarray:
     """Handles homodyne's NaN-masked entries via pairwise-complete covariance"""
     if not np.isnan(samples).any():
