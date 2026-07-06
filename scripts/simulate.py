@@ -49,6 +49,10 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     elif measurement_type == 'heterodyne':
         # For heterodyne, we can simulate measuring both quadratures with added noise
         samples += rng.normal(loc=0.0, scale=noise_level, size=(n_samples, 2))
+    elif measurement_type == 'joint':
+        pass
+    else:
+        raise ValueError(f"Unknown measurement type: {measurement_type}")
     
     return samples
 
