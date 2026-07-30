@@ -5,8 +5,7 @@ Gaussian quantum-state tomography.
  
 ## Overview
  
-Horizons - black hole event horizons, Rindler horizons in accelerated
-frames - are predicted to generate thermal particle radiation (Hawking and
+Horizons - black hole event horizons - are predicted to generate thermal particle radiation (Hawking and
 Unruh radiation) from correlations between an observable mode and a
 partner mode hidden behind the horizon. This project builds a toy model of
 that process and asks a concrete, quantitative question - given only
