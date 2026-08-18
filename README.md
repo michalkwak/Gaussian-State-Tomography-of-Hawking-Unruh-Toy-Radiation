@@ -47,8 +47,8 @@ mode, `V_A = cosh(2r)·I₂` - a thermal state whose properties are fully
 determined by its symplectic eigenvalue `ν = sqrt(det(V_A))`:
  
 - **Particle number:** `N = (Tr(V_A) − 2) / 4`
-- **Entanglement entropy:** `S = g(ν)`, the standard thermal-state entropy
-  function of a Gaussian mode
+- **Entanglement entropy:** `S = g(ν)`, the standard thermal-state entropyfunction of a Gaussian mode
+
 Three detection schemes are modeled, each with a genuinely different
 information/noise trade-off:
  
