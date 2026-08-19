@@ -5,11 +5,10 @@ Gaussian quantum-state tomography.
  
 ## Overview
  
-Horizons - black hole event horizons - are predicted to generate thermal particle radiation (Hawking and
+Horizons (black hole event horizons) are predicted to generate thermal particle radiation (Hawking and
 Unruh radiation) from correlations between an observable mode and a
 partner mode hidden behind the horizon. This project builds a toy model of
-that process and asks a concrete, quantitative question - given only
-finite, noisy measurements of the accessible mode, how much can be
+that process. It finds out, given only finite, noisy measurements of the accessible mode, how much can be
 recovered about the underlying quantum state?
  
 The horizon is modeled as a two-mode squeezed Gaussian state: one mode
