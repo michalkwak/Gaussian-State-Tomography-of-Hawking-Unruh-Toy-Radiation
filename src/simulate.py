@@ -1,20 +1,20 @@
-import numpy as np
+import jax
+import jax.numpy as jnp
+from jax import random
 import matplotlib.pyplot as plt
 
-# simulate.py
-
-def generate_covariance_matrix(r: float) -> np.ndarray:
+def generate_covariance_matrix(r: float) -> jax.Array:
     """Returns 4x4 V(r) for the two-mode squeezed vacuum (joint state,
     both wedges). Used only for the idealized joint-access comparison —
     the physically realistic pipeline uses reduce_to_accessible(V) below."""
-    cov_matrix = np.array([[np.cosh(2*r), 0, np.sinh(2*r), 0],
-                           [0, np.cosh(2*r), 0, -np.sinh(2*r)],
-                           [np.sinh(2*r), 0, np.cosh(2*r), 0],
-                           [0, -np.sinh(2*r), 0, np.cosh(2*r)]])
+    cov_matrix = jnp.array([[jnp.cosh(2*r), 0, jnp.sinh(2*r), 0],
+                            [0, jnp.cosh(2*r), 0, -jnp.sinh(2*r)],
+                            [jnp.sinh(2*r), 0, jnp.cosh(2*r), 0],
+                            [0, -jnp.sinh(2*r), 0, jnp.cosh(2*r)]])
     return cov_matrix
 
 
-def reduce_to_accessible(V: np.ndarray) -> np.ndarray:
+def reduce_to_accessible(V: jax.Array) -> jax.Array:
     """Top-left 2x2 block — the one-wedge (right-wedge) marginal state
     V_R(r) = cosh(2r) I_2, i.e. what an outside observer actually has
     access to. This is the physically realistic starting point for the
@@ -24,7 +24,7 @@ def reduce_to_accessible(V: np.ndarray) -> np.ndarray:
     return top_left_block
 
 
-def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
+def sample_measurements(V_A, n_samples, noise_level, measurement_type, key):
     """
     Simulates detector outcomes for the one-wedge accessible mode V_A (2x2).
 
@@ -46,8 +46,9 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     Returns (n_samples, 2) array.
     """
     # --- Step 1: state sampling (Wigner-function sampling, not a measurement yet) ---
-    L = np.linalg.cholesky(V_A)  # lower triangular matrix such that V_A = L @ L.T
-    z = rng.standard_normal(size=(n_samples, 2))
+    state_key, choice_key, heterodyne_key, detector_key = random.split(key, 4)
+    L = jnp.linalg.cholesky(V_A)  # lower triangular matrix such that V_A = L @ L.T
+    z = random.normal(state_key, shape=(n_samples, 2))
     samples = z @ L.T  # samples ~ N(0, V_A)
 
     # --- Step 2: measurement protocol ---
@@ -56,25 +57,25 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, rng):
     elif measurement_type == 'homodyne':
         # each shot, randomly choose to measure x or p (local-oscillator phase
         # choice); mask the unmeasured quadrature as missing, not zero
-        mask = rng.integers(0, 2, size=n_samples)  # 0 -> measure x, 1 -> measure p
-        samples[mask == 0, 1] = np.nan
-        samples[mask == 1, 0] = np.nan
+        mask = random.randint(choice_key, shape=(n_samples,), minval=0, maxval=2)
+        samples = jnp.where((mask == 0)[:, None], samples.at[:, 1].set(jnp.nan), samples)
+        samples = jnp.where((mask == 1)[:, None], samples.at[:, 0].set(jnp.nan), samples)
     elif measurement_type == 'heterodyne':
         # fixed +1 unit of vacuum noise (Sigma_het = V_A + I_2), NOT scaled
         # by noise_level -- this is a fundamental measurement penalty, not
         # a technical/detector imperfection
-        samples += rng.standard_normal(size=(n_samples, 2))
+        samples += random.normal(heterodyne_key, shape=(n_samples, 2))
     else:
         raise ValueError(f"Unknown measurement type: {measurement_type}")
 
     # --- detector noise, on top of the measurement outcome, all schemes ---
-    detector_noise = rng.normal(loc=0.0, scale=noise_level, size=(n_samples, 2))
+    detector_noise = noise_level * random.normal(detector_key, shape=(n_samples, 2))
     samples += detector_noise
 
     return samples
 
 
-def sample_idealized_joint_access(V, n_samples, noise_level, rng):
+def sample_idealized_joint_access(V, n_samples, noise_level, key):
     """Idealized COMPARISON case only: samples both modes (right + left
     wedge) as if an observer had access to the full joint state. This is
     not physically realistic (the left-wedge/partner mode is inaccessible
@@ -82,16 +83,18 @@ def sample_idealized_joint_access(V, n_samples, noise_level, rng):
     much reconstruction accuracy is lost when restricted to one wedge.
     V must be the full 4x4 joint covariance matrix. Returns (n_samples, 4).
     """
-    L = np.linalg.cholesky(V)
-    z = rng.standard_normal(size=(n_samples, 4))
+    state_key, noise_key = random.split(key)
+    L = jnp.linalg.cholesky(V)
+    z = random.normal(state_key, shape=(n_samples, 4))
     samples = z @ L.T
-    noise = rng.normal(loc=0.0, scale=noise_level, size=(n_samples, 4))
+    noise = noise_level * random.normal(noise_key, shape=(n_samples, 4))
     samples += noise
     return samples
 
 
 def plot_samples(samples):
     """Plots the samples in phase space."""
+    samples = jax.device_get(samples)
     plt.figure(figsize=(6, 6))
     plt.scatter(samples[:, 0], samples[:, 1], alpha=0.5, s=10)
     plt.title("Phase Space Samples")
@@ -110,14 +113,15 @@ def main():
 
     n_samples = 1000
     noise_level = 0.1
-    rng = np.random.default_rng(seed=42)
+    key = random.key(42)
 
     for measurement_type in ('joint', 'homodyne', 'heterodyne'):
-        samples = sample_measurements(V_A, n_samples, noise_level, measurement_type, rng)
+        key, sample_key = random.split(key)
+        samples = sample_measurements(V_A, n_samples, noise_level, measurement_type, sample_key)
         print(measurement_type, samples[:5])
 
-    # Idealized joint-access comparison (both wedges) -- NOT the physical case
-    joint_samples = sample_idealized_joint_access(V, n_samples, noise_level, rng)
+    # Idealized joint-access comparison (both wedges) - not the physical case
+    joint_samples = sample_idealized_joint_access(V, n_samples, noise_level, key)
     print("idealized joint access:", joint_samples[:5])
 
 

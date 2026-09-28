@@ -1,4 +1,6 @@
-import numpy as np
+import jax
+import jax.numpy as jnp
+from jax import random
 import matplotlib.pyplot as plt
 import ripser
 import teaspoon.TDA.Draw as Draw
@@ -14,7 +16,7 @@ import simulate
 # no separate data generation logic lives here.
 
 
-def compute_persistence_diagrams(samples: np.ndarray, maxdim: int = 1) -> list:
+def compute_persistence_diagrams(samples: jax.Array, maxdim: int = 1) -> list:
     """
     Computes Vietoris-Rips persistence diagrams directly from a point cloud.
 
@@ -46,9 +48,9 @@ def compute_persistence_diagrams(samples: np.ndarray, maxdim: int = 1) -> list:
 
     Returns the list of persistence diagrams, diagrams[0] = H0, diagrams[1] = H1, etc.
     """
-    if np.isnan(samples).any():
-        mask = ~np.isnan(samples).any(axis=1)
-        n_dropped = (~mask).sum()
+    if jnp.isnan(samples).any():
+        mask = ~jnp.isnan(samples).any(axis=1)
+        n_dropped = int(jax.device_get((~mask).sum()))
         samples = samples[mask]
         if len(samples) == 0:
             raise ValueError(
@@ -62,11 +64,12 @@ def compute_persistence_diagrams(samples: np.ndarray, maxdim: int = 1) -> list:
         print(f"compute_persistence_diagrams: dropping {n_dropped}/{n_dropped + len(samples)} "
               f"rows with missing quadratures")
 
-    return ripser.ripser(samples, maxdim=maxdim)["dgms"]
+    return ripser.ripser(jax.device_get(samples), maxdim=maxdim)["dgms"]
 
 
-def plot_persistence(samples: np.ndarray, diagrams: list, R: float = 2.0):
+def plot_persistence(samples: jax.Array, diagrams: list, R: float = 2.0):
     """Plots the point cloud alongside its H0 and H1 persistence diagrams."""
+    samples = jax.device_get(samples)
     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(20, 5))
 
     plt.sca(axes[0])
@@ -95,9 +98,9 @@ def main():
     n_samples = 1000
     noise_level = 0.1
     measurement_type = 'heterodyne'  # 'joint' | 'homodyne' | 'heterodyne'
-    rng = np.random.default_rng(seed=42)
+    key = random.key(42)
 
-    samples = simulate.sample_measurements(V_A, n_samples, noise_level, measurement_type, rng)
+    samples = simulate.sample_measurements(V_A, n_samples, noise_level, measurement_type, key)
     diagrams = compute_persistence_diagrams(samples, maxdim=1)
     plot_persistence(samples, diagrams)
 

@@ -1,21 +1,22 @@
-import numpy as np
+import jax
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import simulate
 
 
-def compute_particle_number(V: np.ndarray) -> float:
-    return (np.trace(V) - 2) / 4
+def compute_particle_number(V: jax.Array) -> jax.Array:
+    return (jnp.trace(V) - 2) / 4
 
-def compute_entropy(V: np.ndarray) -> float:
-    nu = np.sqrt(np.linalg.det(V))
+def compute_entropy(V: jax.Array) -> jax.Array:
+    nu = jnp.sqrt(jnp.linalg.det(V))
     if nu <= 1:  # guard against reconstruction noise pushing below vacuum
         return 0.0
     a, b = (nu+1)/2, (nu-1)/2
-    return a*np.log2(a) - b*np.log2(b)
+    return a*jnp.log2(a) - b*jnp.log2(b)
 
-def estimate_squeezing(V: np.ndarray) -> float:
-    nu = np.sqrt(np.linalg.det(V))
-    return 0.5 * np.arccosh(max(nu, 1.0))
+def estimate_squeezing(V: jax.Array) -> jax.Array:
+    nu = jnp.sqrt(jnp.linalg.det(V))
+    return 0.5 * jnp.arccosh(jnp.maximum(nu, 1.0))
 
 def matrix_error(V_true, V_hat) -> float:
-    return np.linalg.norm(V_true - V_hat, ord='fro')
+    return jnp.linalg.norm(V_true - V_hat, ord='fro')

@@ -1,16 +1,16 @@
-import numpy as np
+from jax import random
 from simulate import generate_covariance_matrix, reduce_to_accessible, sample_measurements
 from estimate import estimate_covariance
 from metrics import compute_particle_number, compute_entropy, estimate_squeezing, matrix_error
 import matplotlib.pyplot as plt
 
 def run_single_trial(r, n_samples, noise_level, measurement_type, seed):
-    rng = np.random.default_rng(seed)
+    key = random.key(seed)
 
     V_true = generate_covariance_matrix(r)
     V_A_true = reduce_to_accessible(V_true)
 
-    samples = sample_measurements(V_A_true, n_samples, noise_level, measurement_type, rng)
+    samples = sample_measurements(V_A_true, n_samples, noise_level, measurement_type, key)
     V_A_hat = estimate_covariance(samples)
 
     return {
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     result = run_single_trial(r=0.5, n_samples=1000, noise_level=0.1,
                                measurement_type="heterodyne", seed=42)
     
-    samples = sample_measurements(reduce_to_accessible(generate_covariance_matrix(0.5)), 1000, 0.1, "heterodyne", np.random.default_rng(seed=42))
+    samples = sample_measurements(reduce_to_accessible(generate_covariance_matrix(0.5)), 1000, 0.1, "heterodyne", random.key(42))
     plot_samples(samples)
 
     print(result)
