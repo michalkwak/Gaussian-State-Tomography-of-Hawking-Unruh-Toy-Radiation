@@ -3,6 +3,17 @@ import jax.numpy as jnp
 from jax import random
 import matplotlib.pyplot as plt
 
+def unruh_occupation(omega, a, c: float = 1.0):
+    """Planckian Rindler occupation n_Omega = 1 / (exp(2 pi c Omega / a) - 1), eq. 2.5.2."""
+    return 1.0 / jnp.expm1(2 * jnp.pi * c * omega / a)
+
+
+def r_from_unruh(omega, a, c: float = 1.0):
+    """Squeezing parameter of the Minkowski vacuum seen by an observer with
+    acceleration a, at Rindler frequency omega: sinh^2(r) = n_Omega, eq. 2.6.2."""
+    return jnp.arcsinh(jnp.sqrt(unruh_occupation(omega, a, c)))
+
+
 def generate_covariance_matrix(r: float) -> jax.Array:
     """Returns 4x4 V(r) for the two-mode squeezed vacuum (joint state,
     both wedges). Used only for the idealized joint-access comparison —

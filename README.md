@@ -58,3 +58,17 @@ information/noise trade-off:
 - **Heterodyne** - both quadratures measured every shot, but with an
   extra unit of vacuum noise added - a fundamental measurement penalty,
   not a technical limitation.
+
+## Running the app
+
+Install the requirements into a virtual environment and launch Streamlit
+with that environment's Python (a global `streamlit` command may belong to a
+Python without `jax`):
+
+```
+python -m venv .venv
+.venv/Scripts/python -m pip install -r requirements.txt   # macOS/Linux: .venv/bin/python
+.venv/Scripts/python -m streamlit run app/app.py
+```
+
+`python app/app.py` also works and relaunches itself under Streamlit.

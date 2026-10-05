@@ -7,7 +7,7 @@ import teaspoon.TDA.Draw as Draw
 
 import simulate
 
-# topology.py
+# homology.py
 #
 # Persistent-homology analysis of the synthetic measurement point cloud
 # produced by simulate.sample_measurements(). Consumes the same (n_samples, 2)
@@ -42,7 +42,7 @@ def compute_persistence_diagrams(samples: jax.Array, maxdim: int = 1) -> list:
     (e.g. a mix of measurement types, or occasional dropped shots).
 
     maxdim=1 (H0, H1) is fast even for n_samples in the thousands. Going to
-    higher maxdim (per the H0-H4 sweep mentioned in the project abstract)
+    higher maxdim (per the H0-H2 study described in the paper)
     is combinatorially more expensive -- test on a small n_samples (50-100)
     before scaling up.
 

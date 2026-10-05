@@ -11,7 +11,7 @@ def run_single_trial(r, n_samples, noise_level, measurement_type, seed):
     V_A_true = reduce_to_accessible(V_true)
 
     samples = sample_measurements(V_A_true, n_samples, noise_level, measurement_type, key)
-    V_A_hat = estimate_covariance(samples)
+    V_A_hat = estimate_covariance(samples, measurement_type, noise_level)
 
     return {
         "r_true": r,
