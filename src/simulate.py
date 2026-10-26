@@ -86,6 +86,33 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, key):
     return samples
 
 
+def sample_calibration(n_calibration, noise_level, measurement_type, key, source="vacuum"):
+    """
+    Simulates a detector calibration run, taken with the signal blocked, so
+    the detector noise sigma can be inferred independently of the squeezing r.
+    Without it, r and sigma are confounded: the signal data only constrain
+    cosh(2r) + sigma^2.
+
+    source:
+      - "vacuum" (shot-noise reference, the standard optics calibration): the
+        signal port is blocked, so the detector measures the vacuum state,
+        i.e. the r = 0 state V = I_2, through the same measurement scheme.
+        Observed variance per quadrature: 1 + sigma^2 (joint, homodyne) or
+        2 + sigma^2 (heterodyne).
+      - "dark": the detector is also unilluminated, so only the electronic
+        noise is recorded. Observed variance: sigma^2, scheme-independent.
+
+    Use a key independent of the signal run's key. Returns (n_calibration, 2),
+    with NaNs for the unmeasured quadrature in vacuum + homodyne, as in
+    sample_measurements.
+    """
+    if source == "vacuum":
+        return sample_measurements(jnp.eye(2), n_calibration, noise_level, measurement_type, key)
+    if source == "dark":
+        return noise_level * random.normal(key, shape=(n_calibration, 2))
+    raise ValueError(f"Unknown calibration source: {source}")
+
+
 def sample_idealized_joint_access(V, n_samples, noise_level, key):
     """Idealized COMPARISON case only: samples both modes (right + left
     wedge) as if an observer had access to the full joint state. This is
@@ -130,6 +157,11 @@ def main():
         key, sample_key = random.split(key)
         samples = sample_measurements(V_A, n_samples, noise_level, measurement_type, sample_key)
         print(measurement_type, samples[:5])
+
+    # Detector calibration run (signal blocked), independent key
+    key, calibration_key = random.split(key)
+    calibration = sample_calibration(n_samples, noise_level, 'joint', calibration_key)
+    print("calibration (vacuum):", calibration[:5])
 
     # Idealized joint-access comparison (both wedges) - not the physical case
     joint_samples = sample_idealized_joint_access(V, n_samples, noise_level, key)
