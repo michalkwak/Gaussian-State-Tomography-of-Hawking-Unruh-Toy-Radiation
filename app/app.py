@@ -45,8 +45,8 @@ except ModuleNotFoundError as e:
         icon=":material/error:")
     st.stop()
 
-MEASUREMENT_TYPES = ["joint", "homodyne", "heterodyne"]
-COLORS = {"joint": "tab:blue", "homodyne": "tab:orange", "heterodyne": "tab:green"}
+MEASUREMENT_TYPES = ["joint", "heterodyne"]
+COLORS = {"joint": "tab:blue", "heterodyne": "tab:green"}
 
 
 # cached simulation (plain numpy out, so results pickle cleanly into the cache)
@@ -88,7 +88,7 @@ def accuracy_sweep(r, sigma, n_grid, n_trials, seed):
 
 
 def to_csv(samples, r, sigma, measurement_type, seed):
-    """Point cloud as CSV; NaN marks the unmeasured homodyne quadrature."""
+    """Point cloud as CSV, with the simulation parameters in the header."""
     buf = io.StringIO()
     header = (f"r={r:.6f}, noise_level={sigma}, measurement_type={measurement_type}, "
               f"seed={seed}, n_samples={len(samples)}, V_A=cosh(2r)*I2={np.cosh(2 * r):.6f}*I2\n"
@@ -110,19 +110,6 @@ def ellipse(cov, n_sigma=2.0, n_pts=200):
 def draw_cov(ax, cov, **kw):
     e = ellipse(cov)
     ax.plot(e[:, 0], e[:, 1], **kw)
-
-
-def scatter_measurements(ax, samples, **kw):
-    """Homodyne shots have one quadrature missing: draw x-shots on the x axis
-    and p-shots on the p axis instead of inventing a value for the other."""
-    x_only = np.isnan(samples[:, 1]) & ~np.isnan(samples[:, 0])
-    p_only = np.isnan(samples[:, 0]) & ~np.isnan(samples[:, 1])
-    both = ~np.isnan(samples).any(axis=1)
-    ax.scatter(samples[both, 0], samples[both, 1], **kw)
-    if x_only.any() or p_only.any():
-        kw.pop("label", None)
-        ax.scatter(samples[x_only, 0], np.zeros(x_only.sum()), marker="|", label="x-shots", **kw)
-        ax.scatter(np.zeros(p_only.sum()), samples[p_only, 1], marker="_", label="p-shots", **kw)
 
 
 def show(fig):
@@ -218,7 +205,7 @@ if tab_recon.open:
         c1, c2 = st.columns([3, 2])
         with c1:
             fig, ax = plt.subplots(figsize=(6, 6))
-            scatter_measurements(ax, samples, s=6, alpha=0.3, label="measured samples")
+            ax.scatter(samples[:, 0], samples[:, 1], s=6, alpha=0.3, label="measured samples")
             draw_cov(ax, V_A, color="green", lw=2, label="true covariance (2σ)")
             draw_cov(ax, V_hat, color="red", lw=2, ls="--", label="estimated covariance (2σ)")
             ax.set(xlabel="X quadrature", ylabel="P quadrature",
@@ -247,9 +234,9 @@ if tab_recon.open:
             m2.metric("Cramér–Rao bound on std(r̂)", f"{crb:.4f}", border=True,
                       help="Best achievable standard deviation of any unbiased estimate "
                            "of r from this many shots of this scheme.")
-            if measurement_type == "homodyne":
-                st.caption("Homodyne never sees x and p together, so the off-diagonal "
-                           "covariance is assumed to be zero.")
+            if measurement_type == "joint":
+                st.caption("Joint is the idealized benchmark: exact x and p in the same "
+                           "shot is not physically possible.")
             if measurement_type == "heterodyne":
                 st.caption("The known +1 unit of heterodyne vacuum noise is subtracted.")
             if sigma > 0 and not subtract_noise:
@@ -266,16 +253,15 @@ if tab_recon.open:
 if tab_types.open:
     with tab_types:
         notes = {
-            "joint": "Idealized: both quadratures exact.",
-            "homodyne": "One quadrature per shot: x-shots on the x axis, p-shots on the p axis.",
+            "joint": "Idealized benchmark: both quadratures exact.",
             "heterodyne": "Both quadratures, but +1 unit of vacuum noise: a fatter blob.",
         }
         lim = 4 * np.sqrt(np.cosh(2 * r) + 1 + sigma ** 2)
-        for col, mt in zip(st.columns(3), MEASUREMENT_TYPES):
+        for col, mt in zip(st.columns(len(MEASUREMENT_TYPES)), MEASUREMENT_TYPES):
             s = simulate_cloud(r, n_samples, sigma, mt, seed)
             with col:
                 fig, ax = plt.subplots(figsize=(4, 4))
-                scatter_measurements(ax, s, s=5, alpha=0.3, color=COLORS[mt])
+                ax.scatter(s[:, 0], s[:, 1], s=5, alpha=0.3, color=COLORS[mt])
                 draw_cov(ax, V_A, color="green", lw=2)
                 ax.set(xlim=(-lim, lim), ylim=(-lim, lim), title=mt, xlabel="X", ylabel="P")
                 ax.set_aspect("equal"); ax.grid(True)

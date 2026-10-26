@@ -48,16 +48,15 @@ determined by its symplectic eigenvalue `ν = sqrt(det(V_A))`:
 - **Particle number:** `N = (Tr(V_A) − 2) / 4`
 - **Entanglement entropy:** `S = g(ν)`, the standard thermal-state entropyfunction of a Gaussian mode
 
-Three detection schemes are modeled, each with a genuinely different
-information/noise trade-off:
+Two detection schemes are modeled:
  
-- **Joint** - both quadratures measured every shot (idealized baseline).
-- **Homodyne** - only one quadrature measured per shot, the other
-  unobserved; recovering the full covariance requires handling missing
-  data rather than a plain sample covariance.
+- **Joint** - both quadratures measured exactly every shot. Not physically
+  realizable (X and P do not commute); used as the idealized benchmark.
 - **Heterodyne** - both quadratures measured every shot, but with an
   extra unit of vacuum noise added - a fundamental measurement penalty,
-  not a technical limitation.
+  not a technical limitation. This is the realistic scheme used for the
+  rest of the pipeline, since it yields the 2D point cloud the topological
+  analysis needs.
 
 ## Running the app
 

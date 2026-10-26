@@ -26,13 +26,12 @@ def squeezing_crb(r, n_samples, noise_level, measurement_type):
     Cramer-Rao lower bound on std(r_hat) from n_samples shots of the
     accessible mode. Each observed quadrature has variance
     s(r) = cosh(2r) + c, with c = noise_level^2 (+1 for heterodyne), and
-    each shot observes k quadratures (k = 1 for homodyne, else 2), giving
-    Fisher information per shot 2 k sinh^2(2r) / s^2.
+    each shot observes both quadratures, giving Fisher information per shot
+    4 sinh^2(2r) / s^2.
     """
     c = noise_level ** 2 + (1.0 if measurement_type == "heterodyne" else 0.0)
-    k = 1 if measurement_type == "homodyne" else 2
     s = jnp.cosh(2 * r) + c
-    return s / (jnp.sinh(2 * r) * jnp.sqrt(2 * k * n_samples))
+    return s / (2 * jnp.sinh(2 * r) * jnp.sqrt(n_samples))
 
 def matrix_error(V_true, V_hat) -> float:
     return jnp.linalg.norm(V_true - V_hat, ord='fro')

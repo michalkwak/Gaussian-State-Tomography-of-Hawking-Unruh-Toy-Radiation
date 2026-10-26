@@ -26,21 +26,6 @@ def compute_persistence_diagrams(samples: jax.Array, maxdim: int = 1) -> list:
     covariance matrix has none of the properties required of a distance
     matrix (symmetric zero diagonal, non-negativity, triangle inequality).
 
-    homodyne data contains NaN entries for the unmeasured quadrature each
-    shot (see simulate.sample_measurements); rows with any NaN are dropped
-    here, since ripser cannot handle missing coordinates.
-
-    NOTE: for pure homodyne data, every shot has exactly one missing
-    quadrature (never both), so dropping rows with any NaN discards ALL
-    rows, not "roughly half" -- there is no row where both coordinates are
-    jointly observed. This function will raise rather than silently return
-    an empty/broken result. Running persistent homology on homodyne data
-    therefore requires an actual imputation or reconstruction step first
-    (e.g. feeding it estimate.py's reconstructed V_hat and resampling, or
-    an imputation method the DS/ML person settles on) -- this function
-    does not attempt that, it only handles the case where NaNs are sparse
-    (e.g. a mix of measurement types, or occasional dropped shots).
-
     maxdim=1 (H0, H1) is fast even for n_samples in the thousands. Going to
     higher maxdim (per the H0-H2 study described in the paper)
     is combinatorially more expensive -- test on a small n_samples (50-100)
@@ -48,22 +33,6 @@ def compute_persistence_diagrams(samples: jax.Array, maxdim: int = 1) -> list:
 
     Returns the list of persistence diagrams, diagrams[0] = H0, diagrams[1] = H1, etc.
     """
-    if jnp.isnan(samples).any():
-        mask = ~jnp.isnan(samples).any(axis=1)
-        n_dropped = int(jax.device_get((~mask).sum()))
-        samples = samples[mask]
-        if len(samples) == 0:
-            raise ValueError(
-                "compute_persistence_diagrams: every row has a missing "
-                "quadrature -- this looks like pure homodyne data, where no "
-                "shot has both quadratures jointly observed. Row-dropping "
-                "cannot recover a usable point cloud here; homodyne data "
-                "needs imputation or reconstruction (e.g. via estimate.py) "
-                "before persistent homology can be run on it."
-            )
-        print(f"compute_persistence_diagrams: dropping {n_dropped}/{n_dropped + len(samples)} "
-              f"rows with missing quadratures")
-
     return ripser.ripser(jax.device_get(samples), maxdim=maxdim)["dgms"]
 
 
@@ -97,7 +66,7 @@ def main():
 
     n_samples = 1000
     noise_level = 0.1
-    measurement_type = 'heterodyne'  # 'joint' | 'homodyne' | 'heterodyne'
+    measurement_type = 'heterodyne'  # 'joint' (ideal benchmark) | 'heterodyne'
     key = random.key(42)
 
     samples = simulate.sample_measurements(V_A, n_samples, noise_level, measurement_type, key)

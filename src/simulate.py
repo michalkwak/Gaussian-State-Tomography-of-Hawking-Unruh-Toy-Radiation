@@ -44,12 +44,13 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, key):
          state's Wigner function. This alone is NOT a measurement outcome.
       2. Measurement protocol: converts state samples into what a given
          detector scheme would actually report.
-           - joint:     both quadratures observed exactly (idealized limit)
-           - homodyne:  only one quadrature observed per shot, chosen at
-                        random; the other is missing (NaN), not zero
+           - joint:     both quadratures observed exactly (idealized
+                        benchmark, not physically realizable since X and P
+                        do not commute)
            - heterodyne: both quadratures observed every shot, but with an
                         unavoidable +1 unit of vacuum noise added
-                        (Sigma_het = V_A + I_2), per Weedbrook et al. Sec II.5
+                        (Sigma_het = V_A + I_2, i.e. samples of the Husimi Q
+                        function), per Weedbrook et al. Sec II.5
     Independent Gaussian detector noise (sigma_noise) is added on top of
     the ideal measurement outcome in all cases, to emulate real apparatus
     imperfection.
@@ -57,7 +58,7 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, key):
     Returns (n_samples, 2) array.
     """
     # --- Step 1: state sampling (Wigner-function sampling, not a measurement yet) ---
-    state_key, choice_key, heterodyne_key, detector_key = random.split(key, 4)
+    state_key, heterodyne_key, detector_key = random.split(key, 3)
     L = jnp.linalg.cholesky(V_A)  # lower triangular matrix such that V_A = L @ L.T
     z = random.normal(state_key, shape=(n_samples, 2))
     samples = z @ L.T  # samples ~ N(0, V_A)
@@ -65,12 +66,6 @@ def sample_measurements(V_A, n_samples, noise_level, measurement_type, key):
     # --- Step 2: measurement protocol ---
     if measurement_type == 'joint':
         pass  # idealized: both quadratures observed exactly, nothing to add here
-    elif measurement_type == 'homodyne':
-        # each shot, randomly choose to measure x or p (local-oscillator phase
-        # choice); mask the unmeasured quadrature as missing, not zero
-        mask = random.randint(choice_key, shape=(n_samples,), minval=0, maxval=2)
-        samples = jnp.where((mask == 0)[:, None], samples.at[:, 1].set(jnp.nan), samples)
-        samples = jnp.where((mask == 1)[:, None], samples.at[:, 0].set(jnp.nan), samples)
     elif measurement_type == 'heterodyne':
         # fixed +1 unit of vacuum noise (Sigma_het = V_A + I_2), NOT scaled
         # by noise_level -- this is a fundamental measurement penalty, not
@@ -97,14 +92,12 @@ def sample_calibration(n_calibration, noise_level, measurement_type, key, source
       - "vacuum" (shot-noise reference, the standard optics calibration): the
         signal port is blocked, so the detector measures the vacuum state,
         i.e. the r = 0 state V = I_2, through the same measurement scheme.
-        Observed variance per quadrature: 1 + sigma^2 (joint, homodyne) or
+        Observed variance per quadrature: 1 + sigma^2 (joint) or
         2 + sigma^2 (heterodyne).
       - "dark": the detector is also unilluminated, so only the electronic
         noise is recorded. Observed variance: sigma^2, scheme-independent.
 
-    Use a key independent of the signal run's key. Returns (n_calibration, 2),
-    with NaNs for the unmeasured quadrature in vacuum + homodyne, as in
-    sample_measurements.
+    Use a key independent of the signal run's key. Returns (n_calibration, 2).
     """
     if source == "vacuum":
         return sample_measurements(jnp.eye(2), n_calibration, noise_level, measurement_type, key)
@@ -153,7 +146,7 @@ def main():
     noise_level = 0.1
     key = random.key(42)
 
-    for measurement_type in ('joint', 'homodyne', 'heterodyne'):
+    for measurement_type in ('joint', 'heterodyne'):
         key, sample_key = random.split(key)
         samples = sample_measurements(V_A, n_samples, noise_level, measurement_type, sample_key)
         print(measurement_type, samples[:5])
